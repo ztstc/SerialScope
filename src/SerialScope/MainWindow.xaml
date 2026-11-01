@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="SerialScope.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SerialScope.Controls"
+    xmlns:models="using:SerialScope.Models"
+    Title="SerialScope 串口显示器">
+
+    <Grid x:Name="RootLayout" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid Margin="16" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Connection settings -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="16">
+                    <Border Style="{StaticResource SettingsCardStyle}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="连接" Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="PortCombo" Header="端口" PlaceholderText="选择端口" HorizontalAlignment="Stretch" />
+                                <Button x:Name="RefreshPortsButton" Grid.Column="1" Style="{StaticResource IconButtonStyle}" Click="RefreshPorts_Click" ToolTipService.ToolTip="刷新端口" AutomationProperties.Name="刷新端口" VerticalAlignment="Bottom">
+                                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                                </Button>
+                            </Grid>
+
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="96" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="BaudCombo" Header="波特率" IsEditable="True" HorizontalAlignment="Stretch" />
+                                <ComboBox x:Name="DataBitsCombo" Grid.Column="1" Header="数据位" SelectedIndex="3" />
+                            </Grid>
+
+                            <Expander x:Name="AdvancedExpander" Header="高级参数" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                <StackPanel Spacing="8" Margin="0,4,0,0">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="ParityCombo" Header="校验位" SelectedIndex="0" HorizontalAlignment="Stretch" />
+                                        <ComboBox x:Name="StopBitsCombo" Grid.Column="1" Header="停止位" SelectedIndex="0" HorizontalAlignment="Stretch" />
+                                    </Grid>
+                                    <ComboBox x:Name="HandshakeCombo" Header="流控" SelectedIndex="0" HorizontalAlignment="Stretch" />
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <CheckBox x:Name="DtrCheckBox" Content="DTR" />
+                                        <CheckBox x:Name="RtsCheckBox" Content="RTS" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander>
+
+                            <Button x:Name="ConnectButton" Content="连接" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Click="Connect_Click" />
+                            <ToggleSwitch x:Name="DemoToggle" Header="演示模式" OnContent="" OffContent="" Toggled="DemoToggle_Toggled" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingsCardStyle}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="协议" Style="{StaticResource SubtitleTextBlockStyle}" />
+                            <ComboBox x:Name="ProtocolCombo" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ProtocolCombo_SelectionChanged">
+                                <ComboBoxItem Content="FireWater" />
+                                <ComboBoxItem Content="JustFloat" />
+                                <ComboBoxItem Content="RawData" />
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Main content -->
+            <Grid Grid.Column="1" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <InfoBar x:Name="StatusInfoBar" Grid.Row="0" IsOpen="False" IsClosable="True" Severity="Error" Title="操作失败" />
+
+                <SelectorBar x:Name="ViewSelector" Grid.Row="1" HorizontalAlignment="Left" SelectionChanged="ViewSelector_SelectionChanged">
+                    <SelectorBarItem x:Name="WaveSelectorItem" Text="波形" IsSelected="True" />
+                    <SelectorBarItem x:Name="TerminalSelectorItem" Text="终端" />
+                </SelectorBar>
+
+                <Grid Grid.Row="2">
+                    <Grid x:Name="WavePage">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.RowSpacing>8</Grid.RowSpacing>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                            <ToggleButton x:Name="PauseToggleButton" Click="PauseToggle_Click" ToolTipService.ToolTip="暂停或继续" AutomationProperties.Name="暂停">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon x:Name="PauseIcon" Glyph="&#xE769;" FontSize="12" />
+                                    <TextBlock x:Name="PauseButtonText" Text="暂停" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <Button Click="ClearWave_Click" ToolTipService.ToolTip="清空波形" AutomationProperties.Name="清空波形">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="12" />
+                                    <TextBlock Text="清空" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="ExportCsv_Click" ToolTipService.ToolTip="导出 CSV" AutomationProperties.Name="导出 CSV">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE896;" FontSize="12" />
+                                    <TextBlock Text="导出 CSV" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <Border Style="{StaticResource SettingsCardStyle}" Padding="0" MinHeight="320" VerticalAlignment="Stretch">
+                                <controls:WaveformView x:Name="ScopeView" AutomationProperties.Name="波形图" />
+                            </Border>
+
+                            <Grid x:Name="EmptyStateOverlay" Background="Transparent">
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="24,20"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                                        <TextBlock Text="暂无波形数据" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                            <Button Content="演示模式" Style="{StaticResource AccentButtonStyle}" Click="StartDemoFromEmpty_Click" />
+                                            <Button Content="打开终端" Click="OpenTerminalFromEmpty_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2" x:Name="TrafficStatsText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="4,0,0,0" />
+                    </Grid>
+
+                    <Grid x:Name="TerminalPage" Visibility="Collapsed" RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <Grid RowSpacing="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="接收" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" x:Name="TerminalBytesText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <CheckBox x:Name="AutoScrollCheckBox" Content="自动滚动" IsChecked="True" />
+                                        <ToggleButton x:Name="HexToggleButton" Content="HEX" Click="HexToggle_Click" ToolTipService.ToolTip="十六进制显示" />
+                                        <Button Style="{StaticResource IconButtonStyle}" Click="CopyTerminal_Click" ToolTipService.ToolTip="复制" AutomationProperties.Name="复制终端内容">
+                                            <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                        </Button>
+                                        <Button Style="{StaticResource IconButtonStyle}" Click="ClearTerminal_Click" ToolTipService.ToolTip="清空" AutomationProperties.Name="清空终端">
+                                            <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Border Grid.Row="1" Background="{ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                                    <ScrollViewer x:Name="TerminalScrollViewer" Padding="10" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Auto" HorizontalScrollMode="Auto">
+                                        <TextBlock x:Name="TerminalText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="NoWrap" LineHeight="18" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="发送" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBox x:Name="SendTextBox" AcceptsReturn="True" TextWrapping="Wrap" Height="88" VerticalContentAlignment="Top" PlaceholderText="输入内容" />
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Spacing="4" VerticalAlignment="Bottom">
+                                        <TextBlock Text="格式" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <RadioButton x:Name="SendTextRadio" Content="文本" GroupName="SendMode" IsChecked="True" />
+                                            <RadioButton x:Name="SendHexRadio" Content="HEX" GroupName="SendMode" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <ComboBox x:Name="EndingCombo" Grid.Column="1" Header="行尾" SelectedIndex="3" VerticalAlignment="Bottom" Width="110">
+                                        <ComboBoxItem Content="无" />
+                                        <ComboBoxItem Content="CR" />
+                                        <ComboBoxItem Content="LF" />
+                                        <ComboBoxItem Content="CRLF" />
+                                    </ComboBox>
+
+                                    <ToggleButton x:Name="RepeatToggleButton" Grid.Column="2" Content="循环发送" Click="RepeatToggle_Click" VerticalAlignment="Bottom" Margin="0,0,0,4" />
+
+                                    <NumberBox x:Name="RepeatIntervalBox" Grid.Column="3" Header="间隔 (ms)" Value="500" Minimum="50" Maximum="60000" SmallChange="50" SpinButtonPlacementMode="Compact" VerticalAlignment="Bottom" />
+
+                                    <Button x:Name="SendButton" Grid.Column="4" Content="发送" Style="{StaticResource AccentButtonStyle}" MinWidth="88" VerticalAlignment="Bottom" Click="Send_Click">
+                                        <Button.KeyboardAccelerators>
+                                            <KeyboardAccelerator Key="Enter" Modifiers="Control" />
+                                        </Button.KeyboardAccelerators>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- Channels and view settings -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="16">
+                    <Border Style="{StaticResource SettingsCardStyle}">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <TextBlock Text="通道" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock x:Name="ChannelCountText" Text="0" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+
+                            <ItemsControl x:Name="ChannelList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:ChannelState">
+                                        <Grid Padding="0,6" ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="3" Height="24" CornerRadius="2" Background="{x:Bind Brush}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind ValueText, Mode=OneWay}" FontFamily="Consolas" VerticalAlignment="Center" />
+                                            <CheckBox Grid.Column="3" IsChecked="{x:Bind IsVisible, Mode=TwoWay}" MinWidth="0" VerticalAlignment="Center" AutomationProperties.Name="显示通道" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock x:Name="ChannelsEmptyState" Text="暂无通道" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingsCardStyle}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="视图" Style="{StaticResource SubtitleTextBlockStyle}" />
+                            <ComboBox x:Name="TimeWindowCombo" Header="时间窗口" SelectedIndex="1" SelectionChanged="TimeWindow_SelectionChanged" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="5 秒" Tag="5" />
+                                <ComboBoxItem Content="10 秒" Tag="10" />
+                                <ComboBoxItem Content="30 秒" Tag="30" />
+                                <ComboBoxItem Content="60 秒" Tag="60" />
+                            </ComboBox>
+                            <ToggleSwitch x:Name="AutoScaleToggle" Header="自动缩放 Y 轴" IsOn="True" OnContent="" OffContent="" Toggled="AutoScaleToggle_Toggled" />
+                            <Grid x:Name="ManualRangePanel" Visibility="Collapsed" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <NumberBox x:Name="YMinBox" Header="最小值" Value="-50" ValueChanged="YRangeBox_ValueChanged" SpinButtonPlacementMode="Compact" />
+                                <NumberBox x:Name="YMaxBox" Grid.Column="1" Header="最大值" Value="100" ValueChanged="YRangeBox_ValueChanged" SpinButtonPlacementMode="Compact" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

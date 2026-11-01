@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SerialScope.Controls.WaveformView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:win2d="using:Microsoft.Graphics.Canvas.UI.Xaml">
+    <Grid x:Name="HitSurface" Background="Transparent" PointerMoved="ScopeCanvas_PointerMoved" PointerExited="ScopeCanvas_PointerExited">
+        <win2d:CanvasControl
+            x:Name="ScopeCanvas"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Draw="ScopeCanvas_Draw" />
+    </Grid>
+</UserControl>
