@@ -4,6 +4,8 @@
 
 界面采用 WinUI 3 原生控件、标准标题栏和系统主题色；浅色/深色模式跟随 Windows 设置，按钮强调色跟随系统的“个性化 → 颜色”设置。
 
+> 本仓库只收录源码（`src/`、`examples/`、构建脚本）。`artifacts/`、`bin/`、`obj/` 等编译产物不入库，请按下方“快速开始”自行构建运行。
+
 ## 功能
 
 - **串口连接**：端口枚举、刷新、可编辑波特率、数据位、校验位、停止位、流控、DTR/RTS。
@@ -32,18 +34,6 @@
 
 ## 快速开始
 
-### 使用已编译版本
-
-```powershell
-# 直接运行发布目录中的程序
-.\artifacts\SerialScope\SerialScope.exe
-
-# 或解压可分发包后运行
-# artifacts\SerialScope-win-x64.zip  ->  SerialScope\SerialScope.exe
-```
-
-发布包已自带 Windows App SDK 运行时，无需单独安装 Windows App Runtime；需要本机有 **.NET 8 运行时（x64）**。
-
 ### 从源码构建
 
 环境要求：
@@ -57,10 +47,11 @@ dotnet restore .\src\SerialScope\SerialScope.csproj
 dotnet build .\src\SerialScope\SerialScope.csproj -c Release -p:Platform=x64
 ```
 
-或：
+或使用随仓库提供的脚本（编译完成后可加 `-Run` 直接启动，`-Demo` 以演示信号启动）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
+powershell -ExecutionPolicy Bypass -File .\build.ps1 -Demo
 ```
 
 生成的可执行文件位于：
@@ -70,6 +61,7 @@ src\SerialScope\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\SerialScope.e
 ```
 
 > 项目使用 `WindowsAppSDKSelfContained=true`，因此构建产物较大，但目标机器不需要预装 Windows App SDK Runtime。
+> 需要分发给他人时，可对该输出目录执行 `dotnet publish -r win-x64` 后打包为 zip。
 
 ### 命令行参数
 
@@ -120,6 +112,8 @@ src/SerialScope/
   MainWindow.*                  界面与交互
   Program.cs                    应用入口、可选诊断日志
   App.xaml                      原生卡片样式与共享资源
+examples/ArduinoSerialDemo/     Arduino 端的 FireWater 发送示例
+build.ps1 / run.ps1             一键构建 / 启动脚本
 ```
 
 ## 已知边界
